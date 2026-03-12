@@ -1,19 +1,35 @@
 import { Router, type IRouter } from "express";
-import { db, resumesTable, analysisResultsTable, jobProfilesTable } from "@workspace/db";
+import {
+  db,
+  resumesTable,
+  analysisResultsTable,
+  jobProfilesTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { openai } from "@workspace/integrations-openai-ai-server";
 
 const router: IRouter = Router();
 
 async function runAnalysis(resumeId: number) {
-  const [resume] = await db.select().from(resumesTable).where(eq(resumesTable.id, resumeId));
+  const [resume] = await db
+    .select()
+    .from(resumesTable)
+    .where(eq(resumesTable.id, resumeId));
   if (!resume) throw new Error("Resume not found");
 
-  const [jobProfile] = await db.select().from(jobProfilesTable).where(eq(jobProfilesTable.refNo, resume.refNo));
-  if (!jobProfile) throw new Error("Job profile not found for refNo: " + resume.refNo);
+  const [jobProfile] = await db
+    .select()
+    .from(jobProfilesTable)
+    .where(eq(jobProfilesTable.refNo, resume.refNo));
+  if (!jobProfile)
+    throw new Error("Job profile not found for refNo: " + resume.refNo);
 
-  const requiredSkills: string[] = JSON.parse(jobProfile.requiredSkills || "[]");
-  const preferredSkills: string[] = JSON.parse(jobProfile.preferredSkills || "[]");
+  const requiredSkills: string[] = JSON.parse(
+    jobProfile.requiredSkills || "[]",
+  );
+  const preferredSkills: string[] = JSON.parse(
+    jobProfile.preferredSkills || "[]",
+  );
 
   const prompt = `You are an expert ATS (Applicant Tracking System) analyst. Analyze the following resume against the job description and return a JSON response.
 
@@ -59,13 +75,13 @@ Suitability:
 Be precise and only return valid JSON, no markdown.`;
 
   const response = await openai.chat.completions.create({
-    model: "gpt-5.2",
+    model: process.env.AZURE_OPENAI_DEPLOYMENT!,
     max_completion_tokens: 2048,
     messages: [{ role: "user", content: prompt }],
   });
 
   const content = response.choices[0]?.message?.content ?? "{}";
-  
+
   let parsed: {
     candidateName?: string;
     candidateEmail?: string;
@@ -80,7 +96,7 @@ Be precise and only return valid JSON, no markdown.`;
     yearsExperience?: number;
     recommendation?: string;
   };
-  
+
   try {
     const jsonMatch = content.match(/\{[\s\S]*\}/);
     parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : {};
@@ -88,8 +104,11 @@ Be precise and only return valid JSON, no markdown.`;
     parsed = {};
   }
 
-  const [existing] = await db.select().from(analysisResultsTable).where(eq(analysisResultsTable.resumeId, resumeId));
-  
+  const [existing] = await db
+    .select()
+    .from(analysisResultsTable)
+    .where(eq(analysisResultsTable.resumeId, resumeId));
+
   const data = {
     resumeId,
     refNo: resume.refNo,
@@ -109,20 +128,30 @@ Be precise and only return valid JSON, no markdown.`;
 
   let result;
   if (existing) {
-    const [updated] = await db.update(analysisResultsTable).set({ ...data, analyzedAt: new Date() }).where(eq(analysisResultsTable.resumeId, resumeId)).returning();
+    const [updated] = await db
+      .update(analysisResultsTable)
+      .set({ ...data, analyzedAt: new Date() })
+      .where(eq(analysisResultsTable.resumeId, resumeId))
+      .returning();
     result = updated;
   } else {
-    const [created] = await db.insert(analysisResultsTable).values(data).returning();
+    const [created] = await db
+      .insert(analysisResultsTable)
+      .values(data)
+      .returning();
     result = created;
   }
 
-  await db.update(resumesTable).set({
-    candidateName: parsed.candidateName || "",
-    candidateEmail: parsed.candidateEmail || "",
-    candidatePhone: parsed.candidatePhone || "",
-    candidateAddress: parsed.candidateAddress || "",
-    analysisId: result.id,
-  }).where(eq(resumesTable.id, resumeId));
+  await db
+    .update(resumesTable)
+    .set({
+      candidateName: parsed.candidateName || "",
+      candidateEmail: parsed.candidateEmail || "",
+      candidatePhone: parsed.candidatePhone || "",
+      candidateAddress: parsed.candidateAddress || "",
+      analysisId: result.id,
+    })
+    .where(eq(resumesTable.id, resumeId));
 
   return {
     ...result,
@@ -148,8 +177,11 @@ router.post("/analysis/batch", async (req, res) => {
     const { refNo } = req.body as { refNo: string };
     if (!refNo) return res.status(400).json({ error: "refNo is required" });
 
-    const resumes = await db.select().from(resumesTable).where(eq(resumesTable.refNo, refNo));
-    
+    const resumes = await db
+      .select()
+      .from(resumesTable)
+      .where(eq(resumesTable.refNo, refNo));
+
     const results = [];
     for (const resume of resumes) {
       try {

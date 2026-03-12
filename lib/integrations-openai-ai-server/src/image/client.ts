@@ -15,10 +15,15 @@ if (!process.env.AI_INTEGRATIONS_OPENAI_API_KEY) {
 }
 
 export const openai = new OpenAI({
-  apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
-  baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+  apiKey: process.env.AZURE_OPENAI_KEY,
+  baseURL: `${process.env.AZURE_OPENAI_ENDPOINT}/openai/deployments/${process.env.AZURE_OPENAI_DEPLOYMENT}`,
+  defaultQuery: {
+    "api-version": process.env.AZURE_OPENAI_API_VERSION
+  },
+  defaultHeaders: {
+    "api-key": process.env.AZURE_OPENAI_KEY
+  }
 });
-
 export async function generateImageBuffer(
   prompt: string,
   size: "1024x1024" | "512x512" | "256x256" = "1024x1024"
