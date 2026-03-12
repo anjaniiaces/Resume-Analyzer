@@ -1,0 +1,17 @@
+packages:
+  "framer-motion": "For premium page transitions and micro-interactions"
+  "recharts": "For beautiful dashboard analytics charts"
+  "react-hook-form": "For robust and performant forms"
+  "@hookform/resolvers": "Zod validation integration for forms"
+  "date-fns": "For elegant date formatting"
+  "clsx": "For conditional class merging"
+  "tailwind-merge": "For conflict-free tailwind classes"
+
+images:
+  - path: "artifacts/ats-checker/public/images/logo.png"
+    description: "Minimalist corporate logo mark for an enterprise ATS software, abstract deep blue geometric shapes, transparent background"
+    aspect_ratio: "1:1"
+
+notes:
+  - "Assuming all components/ui files requested are available per standard workspace."
+  - "Assuming @workspace/api-client-react exports all generated hooks."

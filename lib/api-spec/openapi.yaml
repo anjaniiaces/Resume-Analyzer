@@ -1,22 +1,28 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: ATS Resume Checker API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: job-profiles
+    description: Job profile management
+  - name: resumes
+    description: Resume management
+  - name: analysis
+    description: ATS analysis operations
+  - name: reports
+    description: Report generation
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +30,257 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /job-profiles:
+    get:
+      operationId: listJobProfiles
+      tags: [job-profiles]
+      summary: List all job profiles
+      responses:
+        "200":
+          description: List of job profiles
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/JobProfile"
+    post:
+      operationId: createJobProfile
+      tags: [job-profiles]
+      summary: Create a job profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobProfileBody"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobProfile"
+
+  /job-profiles/{refNo}:
+    get:
+      operationId: getJobProfile
+      tags: [job-profiles]
+      summary: Get job profile by reference number
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Job profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobProfile"
+        "404":
+          description: Not found
+    put:
+      operationId: updateJobProfile
+      tags: [job-profiles]
+      summary: Update a job profile
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateJobProfileBody"
+      responses:
+        "200":
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/JobProfile"
+    delete:
+      operationId: deleteJobProfile
+      tags: [job-profiles]
+      summary: Delete a job profile
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Deleted
+
+  /resumes:
+    get:
+      operationId: listResumes
+      tags: [resumes]
+      summary: List all resumes
+      parameters:
+        - name: refNo
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of resumes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Resume"
+
+  /resumes/upload:
+    post:
+      operationId: uploadResume
+      tags: [resumes]
+      summary: Upload a resume file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                refNo:
+                  type: string
+                fileName:
+                  type: string
+              required: [file, refNo]
+      responses:
+        "201":
+          description: Uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resume"
+
+  /resumes/{id}:
+    get:
+      operationId: getResume
+      tags: [resumes]
+      summary: Get a resume by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resume
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Resume"
+        "404":
+          description: Not found
+    delete:
+      operationId: deleteResume
+      tags: [resumes]
+      summary: Delete a resume
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /analysis/{resumeId}:
+    post:
+      operationId: analyzeResume
+      tags: [analysis]
+      summary: Run ATS analysis on a resume
+      parameters:
+        - name: resumeId
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisResult"
+
+  /analysis/batch:
+    post:
+      operationId: analyzeBatch
+      tags: [analysis]
+      summary: Run ATS analysis on all resumes for a reference number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BatchAnalysisBody"
+      responses:
+        "200":
+          description: Batch analysis results
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AnalysisResult"
+
+  /reports/{refNo}:
+    get:
+      operationId: getSummaryReport
+      tags: [reports]
+      summary: Get summary report for a reference number
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Summary report
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SummaryReport"
+
+  /reports/{refNo}/export:
+    get:
+      operationId: exportReport
+      tags: [reports]
+      summary: Export summary report as CSV
+      parameters:
+        - name: refNo
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+
 components:
   schemas:
     HealthStatus:
@@ -31,6 +288,152 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
+    JobProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        refNo:
+          type: string
+        title:
+          type: string
+        department:
+          type: string
+        description:
+          type: string
+        requiredSkills:
+          type: array
+          items:
+            type: string
+        preferredSkills:
+          type: array
+          items:
+            type: string
+        minExperienceYears:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required: [id, refNo, title, description, requiredSkills, preferredSkills, minExperienceYears, createdAt, updatedAt]
+
+    CreateJobProfileBody:
+      type: object
+      properties:
+        refNo:
+          type: string
+        title:
+          type: string
+        department:
+          type: string
+        description:
+          type: string
+        requiredSkills:
+          type: array
+          items:
+            type: string
+        preferredSkills:
+          type: array
+          items:
+            type: string
+        minExperienceYears:
+          type: integer
+      required: [refNo, title, description, requiredSkills, preferredSkills, minExperienceYears]
+
+    Resume:
+      type: object
+      properties:
+        id:
+          type: integer
+        refNo:
+          type: string
+        fileName:
+          type: string
+        originalText:
+          type: string
+        candidateName:
+          type: string
+        candidateEmail:
+          type: string
+        candidatePhone:
+          type: string
+        candidateAddress:
+          type: string
+        uploadedAt:
+          type: string
+          format: date-time
+        analysisId:
+          type: integer
+          nullable: true
+      required: [id, refNo, fileName, originalText, uploadedAt]
+
+    AnalysisResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        resumeId:
+          type: integer
+        refNo:
+          type: string
+        candidateName:
+          type: string
+        candidateEmail:
+          type: string
+        candidatePhone:
+          type: string
+        candidateAddress:
+          type: string
+        profileSummary:
+          type: string
+        atsScore:
+          type: number
+        suitability:
+          type: string
+        matchingSkills:
+          type: array
+          items:
+            type: string
+        skillsGap:
+          type: array
+          items:
+            type: string
+        experienceSummary:
+          type: string
+        yearsExperience:
+          type: number
+        recommendation:
+          type: string
+        analyzedAt:
+          type: string
+          format: date-time
+      required: [id, resumeId, refNo, candidateName, profileSummary, atsScore, suitability, matchingSkills, skillsGap, experienceSummary, yearsExperience, recommendation, analyzedAt]
+
+    BatchAnalysisBody:
+      type: object
+      properties:
+        refNo:
+          type: string
+      required: [refNo]
+
+    SummaryReport:
+      type: object
+      properties:
+        refNo:
+          type: string
+        jobTitle:
+          type: string
+        generatedAt:
+          type: string
+          format: date-time
+        totalCandidates:
+          type: integer
+        candidates:
+          type: array
+          items:
+            $ref: "#/components/schemas/AnalysisResult"
+      required: [refNo, jobTitle, generatedAt, totalCandidates, candidates]
